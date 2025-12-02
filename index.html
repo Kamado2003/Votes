@@ -4,174 +4,131 @@
 <meta charset="utf-8">
 <title>Glasanje</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 <style>
-body { font-family:'Poppins',sans-serif; background:linear-gradient(135deg,#fff5fb,#f2eaff); margin:0; padding:28px; color:#2a1a2b; }
-.card { max-width:760px; margin:12px auto; background:#fff; border-radius:14px; padding:20px; box-shadow:0 8px 24px rgba(126,19,137,0.08); }
-h1 { color:#7e1389; margin:0 0 12px; text-align:center; }
-.desc { color:#6b596d; margin-bottom:16px; text-align:center; }
-.song { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f0e7f4; }
-.song:last-child { border-bottom:none; }
-.song .meta { max-width:70%; }
-select { padding:8px; border-radius:8px; border:1px solid #e0cfe0; background:#fff; }
-#username,#password { padding:10px; width:100%; border-radius:8px; border:1px solid #e0cfe0; margin-bottom:12px; }
-.actions { display:flex; gap:12px; margin-top:14px; justify-content:center; flex-wrap:wrap; }
-button { background:#7e1389; color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:600; }
-.result { margin-top:12px; text-align:center; font-weight:600; font-size:18px; }
-.result.ok { color:#7e1389; }
-.result.error { color:#cc0033; }
-.password-container { position:relative; }
-.password-container span { position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; user-select:none; }
-.admin-log { margin-top:16px; max-height:400px; overflow:auto; border:1px solid #e0cfe0; border-radius:8px; padding:10px; background:#faf5fb; font-size:14px; }
-@media(max-width:520px){.song{flex-direction:column;align-items:flex-start;gap:8px}.song .meta{max-width:100%;}}
+body{font-family:Arial,system-ui;background:linear-gradient(135deg,#fff5fb,#f2eaff);margin:0;padding:18px;color:#2a1a2b}
+.container{max-width:980px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(0,0,0,0.06)}
+.row{display:flex;gap:12px}
+.col{flex:1}
+button{background:#7e1389;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
+input,select,textarea{padding:8px;border-radius:8px;border:1px solid #e0cfe0;width:100%}
+.song{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #f0e7f4}
+.small{font-size:13px;color:#6b596d}
+.hidden{display:none}
+pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>Glasanje</h1>
-  <p class="desc">Unesi svoj nick i šifru. Ako si admin, moći ćeš da vidiš log glasanja i da resetuješ sistem.</p>
-
-  <input id="username" placeholder="Korisničko ime">
-  <div class="password-container">
-    <input type="password" id="password" placeholder="Šifra">
-    <span id="togglePass">👁️</span>
+<div class="container">
+  <!-- LOGIN / REGISTER -->
+  <div class="card" id="authCard">
+    <h2>Prijava / Registracija</h2>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input id="authUser" placeholder="Nick sa foruma">
+      <input id="authPass" type="password" placeholder="Lozinka (Upozorenje: nemojte unositi lozinku sa foruma, smislite novu!)">
+      <span style="align-self:center"><button onclick="togglePass()">👁</button></span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <select id="regRole"><option value="user">Korisnik</option><option value="admin">Admin (samo ako nema trenutnog admina)</option></select>
+      <button onclick="doRegister()">Registruj se</button>
+      <button onclick="doLogin()">Prijavi se </button>
+    </div>
+    <div id="authMsg" class="small"></div>
   </div>
 
-  <div id="loginArea">
-    <button id="loginBtn">Prijavi se</button>
-    <button id="registerBtn">Registruj se</button>
+  <!-- USER VIEW -->
+  <div class="card hidden" id="userCard">
+    <h2>Glasanje</h2>
+    <div class="small">Prijavljen: <span id="whoUser"></span> &nbsp;|&nbsp; Datum glasanja: <span id="voteDateUser">—</span></div>
+    <div id="songsContainer" style="margin-top:12px"></div>
+    <div style="margin-top:12px"><button onclick="submitVotes()">Pošalji glasove</button> <button onclick="logout()">Odjavi se</button></div>
+    <div id="voteMsg" class="small"></div>
   </div>
 
-  <div id="voteArea" style="display:none;">
-    <p class="desc">Oceni pesme od 1 do 12 (bez 9 i 11). Preostale dobijaju 0.</p>
-    <div id="songsContainer"></div>
+  <!-- ADMIN VIEW -->
+  <div class="card hidden" id="adminCard">
+    <h2>Admin panel</h2>
+    <div class="small">Prijavljen admin: <span id="whoAdmin"></span> &nbsp;|&nbsp; Stanje: <span id="adminState"></span> &nbsp;|&nbsp; Datum glasanja: <span id="adminDate"></span></div>
 
-    <div class="actions">
-      <button id="submitBtn">Pošalji glasove</button>
-      <button id="resetBtn">Reset glasanja</button>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button onclick="toggleVoting()">Uključi/Isključi glasanje</button>
+      <button onclick="refreshAdmin()">Osveži</button>
+      <button onclick="logout()">Odjavi se</button>
     </div>
 
-    <p id="result" class="result"></p>
+    <h3 style="margin-top:12px">Unesi do 15 pesama (broj i naziv pesme)</h3>
+    <div id="songsInputs"></div>
+    <div style="margin-top:8px"><button onclick="collectAndAddSongs()">Sačuvaj pesme</button></div>
 
-    <div id="adminLog" class="admin-log" style="display:none;"></div>
+    <h3 style="margin-top:12px">Rezultati</h3>
+    <div id="resultsBox"><pre>Učitavanje...</pre></div>
+
+    <h3 style="margin-top:12px">Istorija glasanja</h3>
+    <div id="votesBox"><pre>Učitavanje...</pre></div>
+
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button onclick="adminResetAll()">Reset (briše glasove i pesme, ali NE korisnike)</button>
+      <button onclick="adminResetAdmin()">Reset Admin (briše admin nalog)</button>
+    </div>
+
+    <div id="adminMsg" class="small" style="font-size:16px;"></div>
   </div>
 </div>
 
 <script>
-const GAS_BASE="https://script.google.com/macros/s/AKfycbzr7ZdTReJ5imoILptHb0sBdlUauRsIB0At76p9TP514RfU3uOWBRGUyogCWL6DsgO-9A/exec";
-const ALLOWED=[1,2,3,4,5,6,7,8,10,12];
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbwK2-1FtQIbWR3OZfGreoPnTdBLQ0h2ghPx_X-7F8WmUP0KeMeK03S-6JaQV4rLB1B1oQ/exec";
+const ALLOWED = [1,2,3,4,5,6,7,8,10,12];
+let currentUser=null;
+let currentRole=null;
 
-function createSelect(){
-  const sel=document.createElement('select');
-  const empty=document.createElement('option'); empty.value=""; empty.text="- 0 -"; sel.appendChild(empty);
-  ALLOWED.forEach(n=>{const o=document.createElement('option'); o.value=n; o.text=n; sel.appendChild(o);});
-  return sel;
+function jsonp(url, cb){
+  const cbName = cb;
+  const s = document.createElement("script");
+  s.src = url + "&callback=" + cbName;
+  document.head.appendChild(s);
 }
 
-function loadSongs(){
-  const cb="cb_read_"+Date.now();
-  window[cb]=function(data){
+function togglePass(){ const p=document.getElementById("authPass"); p.type = p.type==="password" ? "text" : "password"; }
+
+function doRegister(){ /*  */ }
+function doLogin(){ /*  */ }
+function logout(){ /*  */ }
+
+function loadUser(){ /*  */ }
+function submitVotes(){ /*  */ }
+
+function loadAdmin(){ refreshAdmin(); renderSongInputs(); }
+function refreshAdmin(){
+  const cb="cb_admin_"+Date.now();
+  window[cb]=function(res){
     try{
-      const cont=document.getElementById('songsContainer'); cont.innerHTML="";
-      if(!data.songs||data.songs.length===0){ cont.innerHTML="<p>Nema pesama u listi 🤭</p>"; return; }
-      data.songs.forEach(s=>{
-        const div=document.createElement('div'); div.className='song';
-        const meta=document.createElement('div'); meta.className='meta';
-        meta.innerHTML="<strong>"+s.name+"</strong> <small>("+s.id+")</small>";
-        const sel=createSelect(); sel.dataset.songId=s.id; div.appendChild(meta); div.appendChild(sel);
-        cont.appendChild(div);
+      if(!res || !res.ok){ document.getElementById("adminMsg").textContent="Greška učitavanja admin podataka"; return; }
+      document.getElementById("adminState").textContent = res.state;
+      document.getElementById("adminDate").textContent = res.voteDate || "—";
+
+      // log 
+      const vbox = document.getElementById("votesBox");
+      let vt = "";
+      (res.votes||[]).forEach(r=>{
+        let shortDate = r[3] ? r[3].split(" ")[0] : ""; 
+        vt += r[0]+" | "+r[1]+" | "+r[2]+" | "+shortDate+"\n";
       });
-    }finally{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } }
+      vbox.innerHTML = "<pre style='font-size:16px'>"+vt+"</pre>";
+
+      // totals sorted
+      const cb2="cb_res_"+Date.now();
+      window[cb2]=function(r2){
+        try{
+          if(!r2 || !r2.ok){ document.getElementById("resultsBox").innerHTML="<pre>No results</pre>"; return; }
+          let txt = "";
+          r2.results.forEach(it=> txt += it.songId + " | " + it.name + " | " + it.total + "\n");
+          document.getElementById("resultsBox").innerHTML = "<pre>"+txt+"</pre>";
+        }finally{ try{ delete window[cb2]; }catch(e){} }
+      };
+      jsonp(GAS_BASE + "?action=results_sorted", cb2);
+    }finally{ try{ delete window[cb]; }catch(e){} }
   };
-  const script=document.createElement('script');
-  script.src=GAS_BASE+"?action=read_songs&callback="+cb;
-  document.body.appendChild(script);
+  jsonp(GAS_BASE + "?action=admin_data", cb);
 }
 
-function togglePass(){ 
-  const p=document.getElementById('password');
-  p.type = p.type==="password"?"text":"password";
-}
-document.getElementById('togglePass').addEventListener('click',togglePass);
-
-function loginOrRegister(action){
-  const username=document.getElementById('username').value.trim();
-  const password=document.getElementById('password').value.trim();
-  const result=document.getElementById('result'); result.textContent=""; result.className="result";
-  if(!username || !password){ result.textContent="Popuni oba polja 😢"; result.className="result error"; return; }
-  const cb="cb_"+Date.now();
-  window[cb]=function(data){
-    try{
-      if(data.ok){
-        result.textContent=data.message; result.className="result ok";
-        document.getElementById('loginArea').style.display="none";
-        document.getElementById('voteArea').style.display="block";
-        if(data.role==="admin") document.getElementById('adminLog').style.display="block";
-        loadSongs();
-        if(data.role==="admin") loadAdminLog();
-      }else{
-        result.textContent=data.error; result.className="result error";
-      }
-    }finally{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } }
-  };
-  const script=document.createElement('script');
-  script.src=GAS_BASE+"?action="+action+"&username="+encodeURIComponent(username)+"&password="+encodeURIComponent(password)+"&callback="+cb;
-  document.body.appendChild(script);
-}
-
-document.getElementById('loginBtn').addEventListener('click',()=>loginOrRegister("login"));
-document.getElementById('registerBtn').addEventListener('click',()=>loginOrRegister("register"));
-
-function gatherVotes(){
-  const username=document.getElementById('username').value.trim();
-  const result=document.getElementById('result'); result.textContent="";
-  if(!username){ result.textContent="Moraš da uneseš nick 💜"; result.className="result error"; return null; }
-  const selects=Array.from(document.querySelectorAll('#songsContainer select'));
-  if(selects.length===0){ result.textContent="Nema pesama 🤭"; result.className="result error"; return null; }
-  const votes={}; const used={};
-  selects.forEach(s=>{ const id=s.dataset.songId; const val=s.value===""?0:Number(s.value); votes[id]=val; if(val!==0){ if(!used[val])used[val]=0; used[val]+=1; } });
-  for(let i=0;i<ALLOWED.length;i++){
-    const v=ALLOWED[i]; if(!used[v]){ result.textContent="Nedostaje broj: "+v+"🤭"; result.className="result error"; return null; }
-    if(used[v]!==1){ result.textContent="Broj se ponavlja više puta: "+v+"🤭"; result.className="result error"; return null; }
-  }
-  return {username:username,votes:votes};
-}
-
-function submitVotes(){
-  const payload=gatherVotes(); const result=document.getElementById('result'); if(!payload)return;
-  result.textContent="Šaljem... 💜"; result.className="result ok";
-  const cb="cb_submit_"+Date.now();
-  window[cb]=function(data){
-    try{
-      if(data.ok){ result.textContent="💜 Hvala! Glasovi su zabeleženi! 💜"; result.className="result ok";
-        document.getElementById('submitBtn').disabled=true;
-        document.querySelectorAll('#songsContainer select').forEach(s=>s.disabled=true);
-      }else if(data.error){ result.textContent=data.error; result.className="result error"; }
-      else{ result.textContent="Došlo je do greške 😔"; result.className="result error"; }
-    }finally{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } }
-  };
-  const script=document.createElement('script');
-  script.src=GAS_BASE+"?action=submit&username="+encodeURIComponent(payload.username)+"&votes="+encodeURIComponent(JSON.stringify(payload.votes))+"&callback="+cb;
-  document.body.appendChild(script);
-}
-
-document.getElementById('submitBtn').addEventListener('click',submitVotes);
-
-function loadAdminLog(){
-  const cb="cb_log_"+Date.now();
-  window[cb]=function(data){
-    try{
-      const logDiv=document.getElementById('adminLog'); logDiv.innerHTML="";
-      if(!data.log||data.log.length===0){ logDiv.innerHTML="<p>Nema glasova 😢</p>"; return; }
-      let html="<table border='1' cellpadding='4' cellspacing='0' style='width:100%; border-collapse:collapse'><tr><th>Korisnik</th><th>Datum</th><th>Pesma</th><th>Bodovi</th></tr>";
-      data.log.forEach(r=>{ html+="<tr><td>"+r.username+"</td><td>"+r.datetime+"</td><td>"+r.song+"</td><td>"+r.score+"</td></tr>"; });
-      html+="</table>"; logDiv.innerHTML=html;
-    }finally{ try{ delete window[cb]; }catch(e){ window[cb]=undefined; } }
-  };
-  const script=document.createElement('script');
-  script.src=GAS_BASE+"?action=get_admin_log&callback="+cb;
-  document.body.appendChild(script);
-}
-</script>
-</body>
-</html>
+functi
