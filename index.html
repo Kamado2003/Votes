@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8">
-<title>Takmičenje — Glasanje</title>
+<title>Glasanje</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 body{font-family:Arial,system-ui;background:linear-gradient(135deg,#fff5fb,#f2eaff);margin:0;padding:18px;color:#2a1a2b}
@@ -23,15 +23,16 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
   <!-- LOGIN / REGISTER -->
   <div class="card" id="authCard">
     <h2>Prijava / Registracija</h2>
+    <h2>Važno! ⚠️ Nemojte unositi lozinku koju koristite za forum! Nick treba da ostane isti.</h2>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <input id="authUser" placeholder="Korisničko ime">
       <input id="authPass" type="password" placeholder="Šifra">
       <span style="align-self:center"><button onclick="togglePass()">👁</button></span>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
-      <select id="regRole"><option value="user">Korisnik</option><option value="admin">Admin (samo ako nema trenutnog admina)</option></select>
-      <button onclick="doRegister()">Registruj</button>
-      <button onclick="doLogin()">Prijavi</button>
+      <select id="regRole"><option value="user">Takmičar</option><option value="admin">Voditelj (samo 1 istovremeno)</option></select>
+      <button onclick="doRegister()">Registruj se</button>
+      <button onclick="doLogin()">Prijavi se</button>
     </div>
     <div id="authMsg" class="small"></div>
   </div>
@@ -39,7 +40,7 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
   <!-- USER VIEW -->
   <div class="card hidden" id="userCard">
     <h2>Glasanje</h2>
-    <div class="small">Prijavljen: <span id="whoUser"></span> &nbsp;|&nbsp; Datum glasanja: <span id="voteDateUser">—</span></div>
+    <div class="small">Prijavljen takmičar 👉: <span id="whoUser"></span> &nbsp;|&nbsp; Datum glasanja: <span id="voteDateUser">—</span></div>
     <div id="songsContainer" style="margin-top:12px"></div>
     <div style="margin-top:12px"><button onclick="submitVotes()">Pošalji glasove</button> <button onclick="logout()">Odjavi se</button></div>
     <div id="voteMsg" class="small"></div>
@@ -47,28 +48,28 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
 
   <!-- ADMIN VIEW -->
   <div class="card hidden" id="adminCard">
-    <h2>Admin panel</h2>
-    <div class="small">Prijavljen admin: <span id="whoAdmin"></span> &nbsp;|&nbsp; Stanje: <span id="adminState"></span> &nbsp;|&nbsp; Datum glasanja: <span id="adminDate"></span></div>
+    <h2>Admin panel 📊</h2>
+    <div class="small">Prijavljen voditelj 👉: <span id="whoAdmin"></span> &nbsp;|&nbsp; Stanje: <span id="adminState"></span> &nbsp;|&nbsp; Datum glasanja: <span id="adminDate"></span></div>
 
     <div style="margin-top:10px;display:flex;gap:8px">
       <button onclick="toggleVoting()">Uključi/Isključi glasanje</button>
-      <button onclick="refreshAdmin()">Osveži</button>
+      <button onclick="refreshAdmin()">Osveži stranicu</button>
       <button onclick="logout()">Odjavi se</button>
     </div>
 
-    <h3 style="margin-top:12px">Unesi do 15 pesama (songId i NAME)</h3>
+    <h3 style="margin-top:12px">Unesi do 15 pesama (redni broj i izvođač - naziv pesme)</h3>
     <div id="songsInputs"></div>
     <div style="margin-top:8px"><button onclick="collectAndAddSongs()">Sačuvaj pesme</button></div>
 
-    <h3 style="margin-top:12px">Rezultati (sortirano po total desc)</h3>
+    <h3 style="margin-top:12px">Rezultati</h3>
     <div id="resultsBox"><pre>Učitavanje...</pre></div>
 
-    <h3 style="margin-top:12px">Log glasova</h3>
+    <h3 style="margin-top:12px">Istorija glasova</h3>
     <div id="votesBox"><pre>Učitavanje...</pre></div>
 
     <div style="margin-top:12px;display:flex;gap:8px">
-      <button onclick="adminResetAll()">Reset (briše glasove i pesme, ali NE korisnike)</button>
-      <button onclick="adminResetAdmin()">Reset Admin (briše admin nalog)</button>
+      <button onclick="adminResetAll()">Reset (briše glasove i pesme)</button>
+      <button onclick="adminResetAdmin()">Reset Admin (briše nalog voditelja na kraju takmičenja!)</button>
     </div>
 
     <div id="adminMsg" class="small"></div>
@@ -76,7 +77,7 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
 </div>
 
 <script>
-const GAS_BASE = "https://script.google.com/macros/s/AKfycbyfwnzqmBO0TMSie7YRw-lWl5emqUqd_XteJrY3P7ksPYXZ7IOtg3X8cLBxFIiRHftnQA/exec"; // <- web app URL
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbwJUXNf84IJ5Tu6pgguneeroevDVycY7vgWYa_WzE-Ac046b3sDHrrvLvduXZkUS79naw/exec"; // <- web app URL
 const ALLOWED = [1,2,3,4,5,6,7,8,10,12];
 let currentUser=null;
 let currentRole=null;
@@ -97,11 +98,11 @@ function doRegister(){
   const u=document.getElementById("authUser").value.trim();
   const p=document.getElementById("authPass").value.trim();
   const role=document.getElementById("regRole").value;
-  if(!u||!p){ document.getElementById("authMsg").textContent="Popuni user i pass"; return; }
+  if(!u||!p){ document.getElementById("authMsg").textContent="Unesi nick i lozinku"; return; }
   const cbName = "cb_reg_"+Date.now();
   window[cbName]=function(res){
     try{
-      if(res.ok){ document.getElementById("authMsg").textContent="Registracija uspešna ("+role+")"; }
+      if(res.ok){ document.getElementById("authMsg").textContent="Registracija je uspešna! ("+role+")"; }
       else document.getElementById("authMsg").textContent = res.error || "Greška";
     }finally{ try{ delete window[cbName]; }catch(e){} }
   };
@@ -112,7 +113,7 @@ function doRegister(){
 function doLogin(){
   const u=document.getElementById("authUser").value.trim();
   const p=document.getElementById("authPass").value.trim();
-  if(!u||!p){ document.getElementById("authMsg").textContent="Popuni user i pass"; return; }
+  if(!u||!p){ document.getElementById("authMsg").textContent="Moraš da uneseš nick sa foruma i lozinku (NE ista kao sa foruma)⚠️"; return; }
   const cbName="cb_login_"+Date.now();
   window[cbName]=function(res){
     try{
@@ -123,7 +124,7 @@ function doLogin(){
         if(res.role==="admin"){ document.getElementById("adminCard").classList.remove("hidden"); document.getElementById("whoAdmin").textContent = currentUser; loadAdmin(); }
         else { document.getElementById("userCard").classList.remove("hidden"); document.getElementById("whoUser").textContent = currentUser; loadUser(); }
       } else {
-        document.getElementById("authMsg").textContent = res.error || "Greška pri prijavi";
+        document.getElementById("authMsg").textContent = res.error || "Greška pri prijavi ⚠️";
       }
     }finally{ try{ delete window[cbName]; }catch(e){} }
   };
@@ -145,7 +146,7 @@ function loadUser(){
   const cb="cb_load_"+Date.now();
   window[cb]=function(res){
     try{
-      if(!res || !res.ok){ document.getElementById("songsContainer").innerHTML = "<div class='small'>Glasanje je zatvoreno</div>"; document.getElementById("voteDateUser").textContent = (res && res.voteDate) ? res.voteDate : "—"; return; }
+      if(!res || !res.ok){ document.getElementById("songsContainer").innerHTML = "<div class='small'>Glasanje je zatvoreno 😔</div>"; document.getElementById("voteDateUser").textContent = (res && res.voteDate) ? res.voteDate : "—"; return; }
       document.getElementById("voteDateUser").textContent = res.voteDate || "—";
       const box=document.getElementById("songsContainer");
       box.innerHTML="";
@@ -163,7 +164,7 @@ function loadUser(){
 }
 
 function submitVotes(){
-  if(!currentUser){ document.getElementById("voteMsg").textContent="Nisi prijavljen"; return; }
+  if(!currentUser){ document.getElementById("voteMsg").textContent="Moraš da se prijaviš 😔"; return; }
   const selects=document.querySelectorAll("#songsContainer select");
   const votes={}; const used={};
   selects.forEach(s=>{ const id=s.dataset.id; const v=s.value===""?0:Number(s.value); votes[id]=v; if(v!==0) used[v]=(used[v]||0)+1; });
@@ -171,10 +172,10 @@ function submitVotes(){
     if(!used[v]){ document.getElementById("voteMsg").textContent="Nedostaje broj "+v; return; }
     if(used[v]!==1){ document.getElementById("voteMsg").textContent="Broj "+v+" se ponavlja"; return; }
   }
-  document.getElementById("voteMsg").textContent="Šaljem...";
+  document.getElementById("voteMsg").textContent="Šaljem... 💜";
   const cb="cb_sv_"+Date.now();
   window[cb]=function(res){
-    try{ if(res.ok){ document.getElementById("voteMsg").textContent="Glasovi zabeleženi"; } else { document.getElementById("voteMsg").textContent = res.error || "Greška"; } }
+    try{ if(res.ok){ document.getElementById("voteMsg").textContent="Hvala 💜 Tvoji glasovi su zabeleženi!"; } else { document.getElementById("voteMsg").textContent = res.error || "Greška ⚠️"; } }
     finally{ try{ delete window[cb]; }catch(e){} }
   };
   jsonp(GAS_BASE + "?action=submit_vote&user="+encodeURIComponent(currentUser)+"&votes="+encodeURIComponent(JSON.stringify(votes)), cb);
@@ -190,7 +191,7 @@ function refreshAdmin(){
   const cb="cb_admin_"+Date.now();
   window[cb]=function(res){
     try{
-      if(!res || !res.ok){ document.getElementById("adminMsg").textContent="Greška učitavanja admin podataka"; return; }
+      if(!res || !res.ok){ document.getElementById("adminMsg").textContent="Greška učitavanja admin podataka ⚠️"; return; }
       document.getElementById("adminState").textContent = res.state;
       document.getElementById("adminDate").textContent = res.voteDate || "—";
       // votes log
@@ -202,7 +203,7 @@ function refreshAdmin(){
       const cb2 = "cb_res_"+Date.now();
       window[cb2]=function(r2){
         try{
-          if(!r2 || !r2.ok){ document.getElementById("resultsBox").innerHTML="<pre>No results</pre>"; return; }
+          if(!r2 || !r2.ok){ document.getElementById("resultsBox").innerHTML="<pre>Nema rezultata ⚠️</pre>"; return; }
           let txt = "";
           r2.results.forEach(it=> txt += it.songId + " | " + it.name + " | " + it.total + "\n");
           document.getElementById("resultsBox").innerHTML = "<pre>"+txt+"</pre>";
@@ -234,10 +235,10 @@ function collectAndAddSongs(){
     const name = r.children[1].value.trim();
     if(id && name) arr.push({id:id, name:name, initialTotal:0});
   });
-  if(arr.length===0){ document.getElementById("adminMsg").textContent="Unesi bar jednu pesmu"; return; }
+  if(arr.length===0){ document.getElementById("adminMsg").textContent="Unesi bar jednu pesmu ⚠️"; return; }
   const cb="cb_adds_"+Date.now();
   window[cb]=function(res){
-    try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Pesme sačuvane" : (res.error||"Greška"); refreshAdmin(); }
+    try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Pesme su sačuvane ✅️" : (res.error||"Greška"); refreshAdmin(); }
     finally{ try{ delete window[cb]; }catch(e){} }
   };
   jsonp(GAS_BASE + "?action=add_songs&songs="+encodeURIComponent(JSON.stringify(arr)), cb);
@@ -250,16 +251,16 @@ function toggleVoting(){
 }
 
 function adminResetAll(){
-  if(!confirm("Ovo briše SVE glasove i PESME i totals. Nastavi?")) return;
+  if(!confirm("Ovo briše SVE glasove, PESME i ZBIR glasova. Nastavi?")) return;
   const cb="cb_reset_"+Date.now();
-  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Reset izvršen" : (res.error||"Greška"); refreshAdmin(); } finally{ try{ delete window[cb]; }catch(e){} } };
+  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Reset izvršen ✅️" : (res.error||"Greška"); refreshAdmin(); } finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=reset_all", cb);
 }
 
 function adminResetAdmin(){
-  if(!confirm("Ovo briše ADMIN nalog. Nastavi?")) return;
+  if(!confirm("Ovo briše VODITELJ nalog. Nastavi?")) return;
   const cb="cb_resetadm_"+Date.now();
-  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Admin obrisan" : (res.error||"Greška"); logout(); } finally{ try{ delete window[cb]; }catch(e){} } };
+  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Voditelj obrisan ✅️" : (res.error||"Greška"); logout(); } finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=reset_admin", cb);
 }
 
@@ -271,4 +272,5 @@ function refreshAdminAndUser(){
 </script>
 </body>
 </html>
+
 
