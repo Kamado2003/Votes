@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8">
-<title>Glasanje</title>
+<title>Takmičenje — Glasanje</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 body{font-family:Arial,system-ui;background:linear-gradient(135deg,#fff5fb,#f2eaff);margin:0;padding:18px;color:#2a1a2b}
@@ -24,14 +24,14 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
   <div class="card" id="authCard">
     <h2>Prijava / Registracija</h2>
     <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input id="authUser" placeholder="Nick sa foruma">
-      <input id="authPass" type="password" placeholder="Lozinka (Upozorenje: nemojte unositi lozinku sa foruma, smislite novu!)">
+      <input id="authUser" placeholder="Korisničko ime">
+      <input id="authPass" type="password" placeholder="Šifra">
       <span style="align-self:center"><button onclick="togglePass()">👁</button></span>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <select id="regRole"><option value="user">Korisnik</option><option value="admin">Admin (samo ako nema trenutnog admina)</option></select>
-      <button onclick="doRegister()">Registruj se</button>
-      <button onclick="doLogin()">Prijavi se </button>
+      <button onclick="doRegister()">Registruj</button>
+      <button onclick="doLogin()">Prijavi</button>
     </div>
     <div id="authMsg" class="small"></div>
   </div>
@@ -56,14 +56,14 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
       <button onclick="logout()">Odjavi se</button>
     </div>
 
-    <h3 style="margin-top:12px">Unesi do 15 pesama (broj i naziv pesme)</h3>
+    <h3 style="margin-top:12px">Unesi do 15 pesama (songId i NAME)</h3>
     <div id="songsInputs"></div>
     <div style="margin-top:8px"><button onclick="collectAndAddSongs()">Sačuvaj pesme</button></div>
 
-    <h3 style="margin-top:12px">Rezultati</h3>
+    <h3 style="margin-top:12px">Rezultati (sortirano po total desc)</h3>
     <div id="resultsBox"><pre>Učitavanje...</pre></div>
 
-    <h3 style="margin-top:12px">Istorija glasanja</h3>
+    <h3 style="margin-top:12px">Log glasova</h3>
     <div id="votesBox"><pre>Učitavanje...</pre></div>
 
     <div style="margin-top:12px;display:flex;gap:8px">
@@ -76,7 +76,7 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
 </div>
 
 <script>
-const GAS_BASE = "https://script.google.com/macros/s/AKfycbwK2-1FtQIbWR3OZfGreoPnTdBLQ0h2ghPx_X-7F8WmUP0KeMeK03S-6JaQV4rLB1B1oQ/exec";
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbwK2-1FtQIbWR3OZfGreoPnTdBLQ0h2ghPx_X-7F8WmUP0KeMeK03S-6JaQV4rLB1B1oQ/exec"; // 
 const ALLOWED = [1,2,3,4,5,6,7,8,10,12];
 let currentUser=null;
 let currentRole=null;
@@ -92,7 +92,7 @@ function togglePass(){ const p=document.getElementById("authPass"); p.type = p.t
 
 function doRegister(){ /*  */ }
 function doLogin(){ /*  */ }
-function logout(){ /*  */ }
+function logout(){ /* */ }
 
 function loadUser(){ /*  */ }
 function submitVotes(){ /*  */ }
@@ -106,11 +106,11 @@ function refreshAdmin(){
       document.getElementById("adminState").textContent = res.state;
       document.getElementById("adminDate").textContent = res.voteDate || "—";
 
-      // log 
+      // log glasova sa skraćenim datumom i većim slovima
       const vbox = document.getElementById("votesBox");
       let vt = "";
       (res.votes||[]).forEach(r=>{
-        let shortDate = r[3] ? r[3].split(" ")[0] : ""; 
+        let shortDate = r[3] ? r[3].split(" ")[0] : ""; // samo datum
         vt += r[0]+" | "+r[1]+" | "+r[2]+" | "+shortDate+"\n";
       });
       vbox.innerHTML = "<pre style='font-size:16px'>"+vt+"</pre>";
@@ -131,4 +131,13 @@ function refreshAdmin(){
   jsonp(GAS_BASE + "?action=admin_data", cb);
 }
 
-functi
+function renderSongInputs(){ /*  */ }
+function collectAndAddSongs(){ /*  */ }
+function toggleVoting(){ /*  */ }
+function adminResetAll(){ /*  */ }
+function adminResetAdmin(){ /*  */ }
+
+function refreshAdminAndUser(){ /*  */ }
+</script>
+</body>
+</html>
