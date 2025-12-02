@@ -23,13 +23,13 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
   <!-- LOGIN / REGISTER -->
   <div class="card" id="authCard">
     <h2>Prijava / Registracija</h2>
-    <h2>Važno! ⚠️ Nemojte unositi lozinku koju koristite za forum! Nick treba da ostane isti.</h2>
+    <h2>⚠️ Nemojte unositi lozinku koju koristite za forum! Nick treba da ostane isti.</h2>
     <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input id="authUser" placeholder="Korisničko ime">
-      <input id="authPass" type="password" placeholder="Šifra">
+      <input id="authUser" placeholder="Nick sa foruma">
+      <input id="authPass" type="password" placeholder="Lozinka">
       <span style="align-self:center"><button onclick="togglePass()">👁</button></span>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
+    <div style="display:flex;gap:7px;margin-bottom:7px">
       <select id="regRole"><option value="user">Takmičar</option><option value="admin">Voditelj (samo 1 istovremeno)</option></select>
       <button onclick="doRegister()">Registruj se</button>
       <button onclick="doLogin()">Prijavi se</button>
@@ -272,5 +272,6 @@ function refreshAdminAndUser(){
 </script>
 </body>
 </html>
+
 
 
