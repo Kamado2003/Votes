@@ -10,7 +10,7 @@ body { font-family:'Poppins',sans-serif; background:linear-gradient(135deg,#fff5
 .card { max-width:760px; margin:12px auto; background:#fff; border-radius:14px; padding:20px; box-shadow:0 8px 24px rgba(126,19,137,0.08); }
 h1 { color:#7e1389; margin:0 0 12px; text-align:center; }
 .desc { color:#6b596d; margin-bottom:16px; text-align:center; }
-.song { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f0e7f4; }
+.song { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f0e7f4; }
 .song:last-child { border-bottom:none; }
 .meta { max-width:70%; }
 select { padding:8px; border-radius:8px; border:1px solid #e0cfe0; background:#fff; }
@@ -20,16 +20,27 @@ button { background:#7e1389; color:#fff; border:none; padding:10px 16px; border-
 .result { margin-top:12px; text-align:center; font-weight:600; }
 .error { color:#cc0033; }
 .ok { color:#007700; }
+.toggle-password { cursor:pointer; position:absolute; right:10px; top:10px; }
+@media(max-width:520px){
+  .song{flex-direction:column;align-items:flex-start;gap:8px}
+  .song .meta{max-width:100%;}
+}
 </style>
 </head>
 <body>
 
 <div class="card">
   <h1>Glasanje</h1>
-  <p class="desc">Unesi svoj nick i šifru i oceni pesme od 1 do 12 (bez 9 i 11).</p>
+  <p class="desc">Unesi nick i lozinku i oceni pesme od 1 do 12 (bez 9 i 11).</p>
 
-  <input id="username" placeholder="Nick sa foruma">
-  <input id="password" type="password" placeholder="Lozinka (Upozorenje: unosite lozinku koju ste poslali voditelju i NE lozinku sa foruma!">
+  <div style="position:relative;">
+    <input id="username" placeholder="Korisničko ime">
+  </div>
+
+  <div style="position:relative;">
+    <input id="password" type="password" placeholder="Lozinka">
+    <span class="toggle-password" onclick="togglePassword()">👁️</span>
+  </div>
 
   <div id="songsContainer"></div>
 
@@ -41,76 +52,102 @@ button { background:#7e1389; color:#fff; border:none; padding:10px 16px; border-
 </div>
 
 <script>
-const GAS_BASE = "https://script.google.com/macros/s/AKfycbzECiyDXTr00t9krw_Rk5VQGfRNG85UC7HtJqXcG_XuAkgVAoUwAANrEagy6v0eBbGl1g/exec"; 
-const ALLOWED=[1,2,3,4,5,6,7,8,10,12];
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbyazDjQqCEVL8Mj5DLcmguq29BQ8bNymTvJBNYOrRxB14N2kDR0p_TpHomWDWPYh_DsVw/exec";  
+const ALLOWED = [1,2,3,4,5,6,7,8,10,12];
 
-function createSelect(){
-  const s=document.createElement("select");
-  const none=document.createElement("option");
-  none.value=""; none.text="- 0 -"; 
-  s.appendChild(none);
-  ALLOWED.forEach(n=>{
-    const o=document.createElement("option");
+function togglePassword() {
+  const field = document.getElementById("password");
+  field.type = field.type === "password" ? "text" : "password";
+}
+
+function createSelect() {
+  const s = document.createElement("select");
+  const none = document.createElement("option");
+  none.value=""; none.text="- 0 -"; s.appendChild(none);
+  ALLOWED.forEach(n => {
+    const o = document.createElement("option");
     o.value=n; o.text=n;
     s.appendChild(o);
   });
   return s;
 }
 
-function loadSongs(){
+function loadSongs() {
   const cb="cb"+Date.now();
-  window[cb]=function(res){
+  window[cb] = function(res){
     const box=document.getElementById("songsContainer");
-    if(!res.ok){ box.innerHTML="Glasanje je zatvoreno."; return; }
+    if(!res.ok){
+      box.innerHTML="Glasanje nije dostupno.";
+      return;
+    }
 
     box.innerHTML="";
     res.songs.forEach(song=>{
       const row=document.createElement("div");
       row.className="song";
-      row.innerHTML=`<div class="meta"><strong>${song.name}</strong></div>`;
+
+      const meta=document.createElement("div");
+      meta.className="meta";
+      meta.innerHTML=`<strong>${song.name}</strong>`;
+
       const sel=createSelect();
       sel.dataset.id=song.id;
+
+      row.appendChild(meta);
       row.appendChild(sel);
       box.appendChild(row);
     });
   };
 
-  let s=document.createElement("script");
-  s.src=GAS_BASE+"?action=load&callback="+cb;
-  document.body.appendChild(s);
+  const script=document.createElement("script");
+  script.src=GAS_BASE+"?action=load&callback="+cb;
+  document.body.appendChild(script);
 }
 
-function gather(){
+function gatherVotes() {
   const user=document.getElementById("username").value.trim();
   const pass=document.getElementById("password").value.trim();
   if(!user || !pass) return {error:"Unesi korisničko ime i lozinku"};
 
-  let votes={};
+  const votes={};
   document.querySelectorAll("select").forEach(sel=>{
-    votes[sel.dataset.id] = sel.value===""?0:Number(sel.value);
+    votes[sel.dataset.id] = sel.value==="" ? 0 : Number(sel.value);
   });
 
   return {user,pass,votes};
 }
 
 document.getElementById("submitBtn").onclick=function(){
-  const payload=gather();
+  const data=gatherVotes();
   const out=document.getElementById("result");
-  if(payload.error){ out.textContent=payload.error; out.className="error result"; return; }
+  if(data.error){
+    out.textContent=data.error;
+    out.className="result error";
+    return;
+  }
 
   out.textContent="Šaljem...";
-  const cb="cb"+Date.now();
+  out.className="result";
 
+  const cb="cb"+Date.now();
   window[cb]=function(res){
-    if(res.error){ out.textContent=res.error; out.className="error result"; }
-    else{ out.textContent="Glas zabeležen 💜"; out.className="ok result"; }
+    if(res.error){
+      out.textContent=res.error;
+      out.className="result error";
+    } else {
+      out.textContent="Glas zabeležen 💜";
+      out.className="result ok";
+    }
   };
 
   const s=document.createElement("script");
-  s.src=GAS_BASE+"?action=vote&user="+encodeURIComponent(payload.user)+
-         "&pass="+encodeURIComponent(payload.pass)+
-         "&votes="+encodeURIComponent(JSON.stringify(payload.votes))+
-         "&callback="+cb;
+  s.src=GAS_BASE
+    +"?action=vote"
+    +"&user="+encodeURIComponent(data.user)
+    +"&pass="+encodeURIComponent(data.pass)
+    +"&votes="+encodeURIComponent(JSON.stringify(data.votes))
+    +"&callback="+cb;
+
   document.body.appendChild(s);
 };
 
@@ -119,4 +156,3 @@ loadSongs();
 
 </body>
 </html>
-
