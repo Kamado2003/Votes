@@ -4,22 +4,71 @@
 <meta charset="utf-8">
 <title>Glasanje</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{font-family:Arial,system-ui;background:linear-gradient(135deg,#fff5fb,#f2eaff);margin:0;padding:18px;color:#2a1a2b}
+body{
+  font-family: 'Roboto', Arial, system-ui;
+  background: linear-gradient(135deg,#fff5fb,#f2eaff);
+  margin:0;padding:18px;color:#2a1a2b;
+}
 .container{max-width:980px;margin:0 auto}
-.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 8px 20px rgba(0,0,0,0.06)}
+.card{
+  background:#fff;
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover{
+  transform: translateY(-3px);
+  box-shadow:0 15px 30px rgba(0,0,0,0.12);
+}
+h2,h3{margin-top:0;color:#7e1389}
 .row{display:flex;gap:12px}
 .col{flex:1}
-button{background:#7e1389;color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer}
-input,select,textarea{padding:8px;border-radius:8px;border:1px solid #e0cfe0;width:100%}
-.song{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #f0e7f4}
+button{
+  background:#7e1389;
+  color:#fff;
+  border:none;
+  padding:10px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  transition: background 0.2s;
+}
+button:hover{background:#9e1fb5}
+input,select,textarea{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #e0cfe0;
+  width:100%;
+  transition: border-color 0.2s;
+}
+input:focus,select:focus,textarea:focus{border-color:#7e1389;outline:none}
+.song{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px;
+  border-bottom:1px solid #f0e7f4;
+  transition: background 0.2s;
+}
+.song:hover{background:#f9f2fd}
 .small{font-size:13px;color:#6b596d}
 .hidden{display:none}
-pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
+pre{
+  background:#faf5fb;
+  padding:8px;
+  border-radius:8px;
+  overflow:auto;
+}
+#resultsChart{margin-top:12px;}
 </style>
 </head>
 <body>
 <div class="container">
+
   <!-- LOGIN / REGISTER -->
   <div class="card" id="authCard">
     <h2>Prijava / Registracija</h2>
@@ -40,7 +89,7 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
   <!-- USER VIEW -->
   <div class="card hidden" id="userCard">
     <h2>Glasanje</h2>
-    <div class="small">Prijavljen takmičar 👉: <span id="whoUser"></span> &nbsp;|&nbsp; Datum glasanja: <span id="voteDateUser">—</span></div>
+    <div class="small">Prijavljeni takmičar 👉: <span id="whoUser"></span> &nbsp;|&nbsp; Datum glasanja: <span id="voteDateUser">—</span></div>
     <div id="songsContainer" style="margin-top:12px"></div>
     <div style="margin-top:12px"><button onclick="submitVotes()">Pošalji glasove</button> <button onclick="logout()">Odjavi se</button></div>
     <div id="voteMsg" class="small"></div>
@@ -49,7 +98,7 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
   <!-- ADMIN VIEW -->
   <div class="card hidden" id="adminCard">
     <h2>Admin panel 📊</h2>
-    <div class="small">Prijavljen voditelj 👉: <span id="whoAdmin"></span> &nbsp;|&nbsp; Stanje: <span id="adminState"></span> &nbsp;|&nbsp; Datum glasanja: <span id="adminDate"></span></div>
+    <div class="small">Prijavljeni voditelj 👉: <span id="whoAdmin"></span> &nbsp;|&nbsp; Glasanje: <span id="adminState"></span> &nbsp;|&nbsp; Datum glasanja: <span id="adminDate">—</span></div>
 
     <div style="margin-top:10px;display:flex;gap:8px">
       <button onclick="toggleVoting()">Uključi/Isključi glasanje</button>
@@ -62,6 +111,7 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
     <div style="margin-top:8px"><button onclick="collectAndAddSongs()">Sačuvaj pesme</button></div>
 
     <h3 style="margin-top:12px">Rezultati</h3>
+    <canvas id="resultsChart" width="400" height="200"></canvas>
     <div id="resultsBox"><pre>Učitavanje...</pre></div>
 
     <h3 style="margin-top:12px">Istorija glasova</h3>
@@ -77,37 +127,28 @@ pre{background:#faf5fb;padding:8px;border-radius:8px;overflow:auto}
 </div>
 
 <script>
-const GAS_BASE = "https://script.google.com/macros/s/AKfycbwJUXNf84IJ5Tu6pgguneeroevDVycY7vgWYa_WzE-Ac046b3sDHrrvLvduXZkUS79naw/exec"; // <- web app URL
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbwJUXNf84IJ5Tu6pgguneeroevDVycY7vgWYa_WzE-Ac046b3sDHrrvLvduXZkUS79naw/exec"; 
 const ALLOWED = [1,2,3,4,5,6,7,8,10,12];
 let currentUser=null;
 let currentRole=null;
+let chart=null;
 
-// JSONP helper
 function jsonp(url, cb){
   const cbName = cb;
   const s = document.createElement("script");
   s.src = url + "&callback=" + cbName;
   document.head.appendChild(s);
 }
-
-// password toggle
 function togglePass(){ const p=document.getElementById("authPass"); p.type = p.type==="password" ? "text" : "password"; }
 
-// AUTH
 function doRegister(){
   const u=document.getElementById("authUser").value.trim();
   const p=document.getElementById("authPass").value.trim();
   const role=document.getElementById("regRole").value;
   if(!u||!p){ document.getElementById("authMsg").textContent="Unesi nick i lozinku"; return; }
   const cbName = "cb_reg_"+Date.now();
-  window[cbName]=function(res){
-    try{
-      if(res.ok){ document.getElementById("authMsg").textContent="Registracija je uspešna! ("+role+")"; }
-      else document.getElementById("authMsg").textContent = res.error || "Greška";
-    }finally{ try{ delete window[cbName]; }catch(e){} }
-  };
-  const url = GAS_BASE + "?action=register&user="+encodeURIComponent(u)+"&pass="+encodeURIComponent(p)+"&role="+encodeURIComponent(role);
-  jsonp(url, cbName);
+  window[cbName]=function(res){ try{ document.getElementById("authMsg").textContent=res.ok?"Registracija uspešna! ("+role+")":(res.error||"Greška"); }finally{ try{ delete window[cbName]; }catch(e){} } };
+  jsonp(GAS_BASE + "?action=register&user="+encodeURIComponent(u)+"&pass="+encodeURIComponent(p)+"&role="+encodeURIComponent(role), cbName);
 }
 
 function doLogin(){
@@ -123,9 +164,7 @@ function doLogin(){
         document.getElementById("authCard").classList.add("hidden");
         if(res.role==="admin"){ document.getElementById("adminCard").classList.remove("hidden"); document.getElementById("whoAdmin").textContent = currentUser; loadAdmin(); }
         else { document.getElementById("userCard").classList.remove("hidden"); document.getElementById("whoUser").textContent = currentUser; loadUser(); }
-      } else {
-        document.getElementById("authMsg").textContent = res.error || "Greška pri prijavi ⚠️";
-      }
+      } else { document.getElementById("authMsg").textContent = res.error || "Greška pri prijavi ⚠️"; }
     }finally{ try{ delete window[cbName]; }catch(e){} }
   };
   jsonp(GAS_BASE + "?action=login&user="+encodeURIComponent(u)+"&pass="+encodeURIComponent(p), cbName);
@@ -141,15 +180,22 @@ function logout(){
   document.getElementById("adminMsg").textContent="";
 }
 
-// USER: load songs and state
+// FORMAT DATUMA
+function formatDate(dt){ 
+  if(!dt) return "—";
+  const d = new Date(dt);
+  const pad=(n)=>n.toString().padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// USER
 function loadUser(){
   const cb="cb_load_"+Date.now();
   window[cb]=function(res){
     try{
-      if(!res || !res.ok){ document.getElementById("songsContainer").innerHTML = "<div class='small'>Glasanje je zatvoreno 😔</div>"; document.getElementById("voteDateUser").textContent = (res && res.voteDate) ? res.voteDate : "—"; return; }
-      document.getElementById("voteDateUser").textContent = res.voteDate || "—";
-      const box=document.getElementById("songsContainer");
-      box.innerHTML="";
+      document.getElementById("voteDateUser").textContent = formatDate(res?.voteDate);
+      const box=document.getElementById("songsContainer"); box.innerHTML="";
+      if(!res?.ok || !res.songs){ box.innerHTML="<div class='small'>Glasanje je zatvoreno 😔</div>"; return; }
       res.songs.forEach(s=>{
         const div=document.createElement("div"); div.className="song";
         const meta=document.createElement("div"); meta.innerHTML="<strong>"+s.name+"</strong>";
@@ -168,45 +214,38 @@ function submitVotes(){
   const selects=document.querySelectorAll("#songsContainer select");
   const votes={}; const used={};
   selects.forEach(s=>{ const id=s.dataset.id; const v=s.value===""?0:Number(s.value); votes[id]=v; if(v!==0) used[v]=(used[v]||0)+1; });
-  for(let v of ALLOWED){
-    if(!used[v]){ document.getElementById("voteMsg").textContent="Nedostaje broj "+v; return; }
-    if(used[v]!==1){ document.getElementById("voteMsg").textContent="Broj "+v+" se ponavlja"; return; }
-  }
+  for(let v of ALLOWED){ if(!used[v]){ document.getElementById("voteMsg").textContent="Nedostaje broj "+v; return; } if(used[v]!==1){ document.getElementById("voteMsg").textContent="Broj "+v+" se ponavlja"; return; } }
   document.getElementById("voteMsg").textContent="Šaljem... 💜";
   const cb="cb_sv_"+Date.now();
-  window[cb]=function(res){
-    try{ if(res.ok){ document.getElementById("voteMsg").textContent="Hvala 💜 Tvoji glasovi su zabeleženi!"; } else { document.getElementById("voteMsg").textContent = res.error || "Greška ⚠️"; } }
-    finally{ try{ delete window[cb]; }catch(e){} }
-  };
+  window[cb]=function(res){ try{ document.getElementById("voteMsg").textContent=res.ok?"Hvala 💜 Tvoji glasovi su zabeleženi!":(res.error||"Greška ⚠️"); }finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=submit_vote&user="+encodeURIComponent(currentUser)+"&votes="+encodeURIComponent(JSON.stringify(votes)), cb);
 }
 
-// ADMIN: load admin data (votes, totals sorted)
+// ADMIN
 function loadAdmin(){
   refreshAdmin();
-  renderSongInputs(); // show 15 inputs
+  renderSongInputs();
 }
 
 function refreshAdmin(){
   const cb="cb_admin_"+Date.now();
   window[cb]=function(res){
     try{
-      if(!res || !res.ok){ document.getElementById("adminMsg").textContent="Greška učitavanja admin podataka ⚠️"; return; }
-      document.getElementById("adminState").textContent = res.state;
-      document.getElementById("adminDate").textContent = res.voteDate || "—";
-      // votes log
+      if(!res?.ok){ document.getElementById("adminMsg").textContent="Greška učitavanja admin podataka ⚠️"; return; }
+      document.getElementById("adminState").textContent=res.state;
+      document.getElementById("adminDate").textContent=formatDate(res.voteDate);
+      
       const vbox = document.getElementById("votesBox");
-      let vt = "";
-      (res.votes||[]).forEach(r=> vt += r[0]+" | "+r[1]+" | "+r[2]+" | "+r[3]+"\n");
+      let vt = ""; (res.votes||[]).forEach(r=> vt += r[0]+" | "+r[1]+" | "+r[2]+" | "+r[3]+"\n");
       vbox.innerHTML = "<pre>"+vt+"</pre>";
-      // totals sorted via separate endpoint
+
       const cb2 = "cb_res_"+Date.now();
       window[cb2]=function(r2){
         try{
-          if(!r2 || !r2.ok){ document.getElementById("resultsBox").innerHTML="<pre>Nema rezultata ⚠️</pre>"; return; }
-          let txt = "";
-          r2.results.forEach(it=> txt += it.songId + " | " + it.name + " | " + it.total + "\n");
-          document.getElementById("resultsBox").innerHTML = "<pre>"+txt+"</pre>";
+          if(!r2?.ok){ document.getElementById("resultsBox").innerHTML="<pre>Nema rezultata ⚠️</pre>"; return; }
+          let txt=""; r2.results.forEach(it=> txt += it.songId + " | " + it.name + " | " + it.total + "\n");
+          document.getElementById("resultsBox").innerHTML="<pre>"+txt+"</pre>";
+          renderChart(r2.results);
         }finally{ try{ delete window[cb2]; }catch(e){} }
       };
       jsonp(GAS_BASE + "?action=results_sorted", cb2);
@@ -215,63 +254,66 @@ function refreshAdmin(){
   jsonp(GAS_BASE + "?action=admin_data", cb);
 }
 
+function renderChart(results){
+  const labels = results.map(it=>it.name);
+  const data = results.map(it=>it.total);
+  const colors = labels.map((_,i)=>`hsl(${i*35 % 360}, 65%, 55%)`);
+  if(chart) chart.destroy();
+  const ctx = document.getElementById('resultsChart').getContext('2d');
+  chart = new Chart(ctx,{
+    type:'bar',
+    data:{labels:labels,datasets:[{label:'Ukupno glasova',data:data,backgroundColor:colors,borderRadius:8,borderSkipped:false}]},
+    options:{
+      responsive:true,
+      animation:{duration:800,easing:'easeOutQuart'},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+": "+ctx.parsed.y}}},
+      scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{ticks:{autoSkip:false}}}
+    }
+  });
+}
+
 function renderSongInputs(){
-  const container = document.getElementById("songsInputs");
-  container.innerHTML = "";
+  const container=document.getElementById("songsInputs");
+  container.innerHTML="";
   for(let i=0;i<15;i++){
-    const row = document.createElement("div"); row.style.display="flex"; row.style.gap="8px"; row.style.marginTop="6px";
-    const idIn = document.createElement("input"); idIn.placeholder="songId"; idIn.style.width="30%";
-    const nameIn = document.createElement("input"); nameIn.placeholder="NAME"; nameIn.style.width="65%";
+    const row=document.createElement("div");
+    row.style.display="flex"; row.style.gap="8px"; row.style.marginTop="6px";
+    const idIn=document.createElement("input"); idIn.placeholder="songId"; idIn.style.width="30%";
+    const nameIn=document.createElement("input"); nameIn.placeholder="NAME"; nameIn.style.width="65%";
     row.appendChild(idIn); row.appendChild(nameIn);
     container.appendChild(row);
   }
 }
 
 function collectAndAddSongs(){
-  const rows = document.querySelectorAll("#songsInputs > div");
+  const rows=document.querySelectorAll("#songsInputs > div");
   const arr=[];
-  rows.forEach(r=>{
-    const id = r.children[0].value.trim();
-    const name = r.children[1].value.trim();
-    if(id && name) arr.push({id:id, name:name, initialTotal:0});
-  });
+  rows.forEach(r=>{ const id=r.children[0].value.trim(); const name=r.children[1].value.trim(); if(id && name) arr.push({id:id,name:name,initialTotal:0}); });
   if(arr.length===0){ document.getElementById("adminMsg").textContent="Unesi bar jednu pesmu ⚠️"; return; }
   const cb="cb_adds_"+Date.now();
-  window[cb]=function(res){
-    try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Pesme su sačuvane ✅️" : (res.error||"Greška"); refreshAdmin(); }
-    finally{ try{ delete window[cb]; }catch(e){} }
-  };
+  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent=(res?.ok)?"Pesme sačuvane ✅️":(res.error||"Greška"); refreshAdmin(); }finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=add_songs&songs="+encodeURIComponent(JSON.stringify(arr)), cb);
 }
 
 function toggleVoting(){
   const cb="cb_toggle_"+Date.now();
-  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? ("Novo stanje: " + res.state) : (res.error||"Greška"); refreshAdmin(); } finally{ try{ delete window[cb]; }catch(e){} } };
+  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent=res?.ok?"Novo stanje: "+res.state:(res.error||"Greška"); refreshAdmin(); }finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=toggle_voting", cb);
 }
 
 function adminResetAll(){
   if(!confirm("Ovo briše SVE glasove, PESME i ZBIR glasova. Nastavi?")) return;
   const cb="cb_reset_"+Date.now();
-  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Reset izvršen ✅️" : (res.error||"Greška"); refreshAdmin(); } finally{ try{ delete window[cb]; }catch(e){} } };
+  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent=res?.ok?"Reset izvršen ✅️":(res.error||"Greška"); refreshAdmin(); }finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=reset_all", cb);
 }
 
 function adminResetAdmin(){
   if(!confirm("Ovo briše VODITELJ nalog. Nastavi?")) return;
   const cb="cb_resetadm_"+Date.now();
-  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent = (res && res.ok) ? "Voditelj obrisan ✅️" : (res.error||"Greška"); logout(); } finally{ try{ delete window[cb]; }catch(e){} } };
+  window[cb]=function(res){ try{ document.getElementById("adminMsg").textContent=res?.ok?"Voditelj obrisan ✅️":(res.error||"Greška"); if(res?.ok) logout(); }finally{ try{ delete window[cb]; }catch(e){} } };
   jsonp(GAS_BASE + "?action=reset_admin", cb);
-}
-
-// refresh helper
-function refreshAdminAndUser(){
-  if(currentRole==="admin") refreshAdmin();
-  if(currentRole==="user") loadUser();
 }
 </script>
 </body>
 </html>
-
-
-
