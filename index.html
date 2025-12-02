@@ -28,8 +28,8 @@ button { background:#7e1389; color:#fff; border:none; padding:10px 16px; border-
   <h1>Glasanje</h1>
   <p class="desc">Unesi svoj nick i šifru i oceni pesme od 1 do 12 (bez 9 i 11).</p>
 
-  <input id="username" placeholder="Korisničko ime">
-  <input id="password" type="password" placeholder="Lozinka">
+  <input id="username" placeholder="Nick sa foruma">
+  <input id="password" type="password" placeholder="Lozinka (Upozorenje: unosite lozinku koju ste poslali voditelju i NE lozinku sa foruma!">
 
   <div id="songsContainer"></div>
 
@@ -41,7 +41,7 @@ button { background:#7e1389; color:#fff; border:none; padding:10px 16px; border-
 </div>
 
 <script>
-const GAS_BASE = "PUT YOUR WEB APP URL HERE"; 
+const GAS_BASE = "https://script.google.com/macros/s/AKfycbzECiyDXTr00t9krw_Rk5VQGfRNG85UC7HtJqXcG_XuAkgVAoUwAANrEagy6v0eBbGl1g/exec"; 
 const ALLOWED=[1,2,3,4,5,6,7,8,10,12];
 
 function createSelect(){
@@ -119,3 +119,4 @@ loadSongs();
 
 </body>
 </html>
+
