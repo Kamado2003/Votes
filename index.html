@@ -80,8 +80,8 @@ pre{
     </div>
     <div style="display:flex;gap:7px;margin-bottom:7px">
       <select id="regRole"><option value="user">Takmičar</option><option value="admin">Voditelj (samo 1 istovremeno)</option></select>
-      <button onclick="doRegister()">Registruj se</button>
-      <button onclick="doLogin()">Prijavi se</button>
+      <button onclick="doRegister()">Registracija</button>
+      <button onclick="doLogin()">Prijava</button>
     </div>
     <div id="authMsg" class="small"></div>
   </div>
@@ -180,7 +180,7 @@ function logout(){
   document.getElementById("adminMsg").textContent="";
 }
 
-// FORMAT DATUMA
+// date format
 function formatDate(dt){ 
   if(!dt) return "—";
   const d = new Date(dt);
@@ -317,3 +317,4 @@ function adminResetAdmin(){
 </script>
 </body>
 </html>
+
